@@ -1,11 +1,13 @@
 import React, { Fragment, useState } from 'react';
 import axios from 'axios';
+import Message from './Message';
 
 const FileUpload = () => {
     const [file, setFile] = useState('');
     const [filename, setFilename] = useState('Choose file');
     const [uploadedFile, setUploadedFile] = useState({});
     const [message, setMessage] = useState('');
+    const [uploadPercentage, setUploadPercentage] = useState(0);
 
     const onChange = e => {
         setFile(e.target.files[0]);
@@ -18,20 +20,29 @@ const FileUpload = () => {
         formData.append('file', file);
 
         try {
-            const res=await axios.post('/upload',formData,{
-                headers:{
-                    'Content-Type':'multipart/form/data'
+            const res = await axios.post('/upload', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form/data'
+                },
+                onDownloadProgress: progressEvent => {
+                    setUploadPercentage(
+                        parseInt(Math.round((progressEvent.loaded * 100) / progressEvent.total))
+                    )
                 }
-            });
-            const {fileName,filePath}=res.data;
 
-            setUploadedFile({fileName,filePath});
+
+            });
+            //clear partcentage     
+            setTimeout(() => setUploadPercentage(0), 10000);
+            const { fileName, filePath } = res.data;
+
+            setUploadedFile({ fileName, filePath });
 
             setMessage('File uploaded')
         } catch (err) {
-            if(err.response.status === 500){
-                setMessage("There was problem with the server" );
-            }else{
+            if (err.response.status === 500) {
+                setMessage("There was problem with the server");
+            } else {
                 setMessage(err.response.data.msg);
             }
         }
@@ -39,6 +50,7 @@ const FileUpload = () => {
 
     return (
         <Fragment>
+            {message ? <Message msg={message} /> : null}
             <form onSubmit={onSubmit}>
                 <div className='custom-file mb-4'>
                     <input
@@ -63,9 +75,9 @@ const FileUpload = () => {
             {uploadedFile ? <div className="row mt-5">
                 <div className="col-md-6 m-auto">
                     <h3 className="text-center">{uploadedFile.fileName}</h3>
-                    <img style={{width:'100%'}} src={uploadedFile.filePath} alt=""  />
+                    <img style={{ width: '100%' }} src={uploadedFile.filePath} alt="" />
                 </div>
-            </div> :null}
+            </div> : null}
         </Fragment>
     )
 }
